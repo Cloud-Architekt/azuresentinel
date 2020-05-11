@@ -1,0 +1,30 @@
+name: Blocked attempts of self-service password reset (SSPR) by user
+description: |
+  'Identifies when Azure AD SSPR blocks or throttle user attempts to reset password of a user.
+  This may indicate a malicious attempt at guessing answers of security questions based on social engineering or stolen personal information.'
+severity: Medium
+requiredDataConnectors:
+  - connectorId: AzureActiveDirectory
+    dataTypes:
+      - AuditLogs
+queryFrequency: 1d
+queryPeriod: 1d
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - InitialAccess
+  - CredentialAccess
+relevantTechniques:
+  - T1078
+  - T1110
+query: |
+
+// Get events of SSPR blocked activities within the number of days (timeframe)
+let timeRange = 3d;
+
+AuditLogs
+| where TimeGenerated >= ago(timeRange)
+| where LoggedByService == "Self-service Password Management" 
+| where OperationName contains "Blocked"
+| extend UserPrincipalName = tostring(TargetResources[0].userPrincipalName), SourceIPAddress = tostring(InitiatedBy.user.ipAddress)
+| project timestamp = TimeGenerated, AccountCustomEntity = UserPrincipalName, IPCustomEntity = SourceIPAddress, OperationName, ResultReason

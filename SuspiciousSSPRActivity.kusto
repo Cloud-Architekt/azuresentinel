@@ -1,0 +1,46 @@
+id: b2c15736-b9eb-4dae-8b02-3016b6a45a32
+name: Suspicious activity from unknown or risky IP addresses to Azure AD SSPR
+description: |
+  'Identifies unknown or risky IPs from which users change or reset their passwords (by Azure AD SSPR).'
+severity: Medium
+requiredDataConnectors:
+  - connectorId: AzureActivity
+    dataTypes:
+      - AzureActivity±
+queryFrequency: 1d
+queryPeriod: 14d
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - InitialAccess
+  - CredentialAccess
+relevantTechniques:
+  - T1078
+  - T1110
+query: |
+
+let sspr_timeframe = 1d;
+let signin_timeframe = 7d;
+
+// Get events of SSPR activities within the number of days (sspr_timeframe)
+let sspr_events =
+AuditLogs
+| where LoggedByService == "Self-service Password Management" and ResultDescription == "User submitted their user ID"  
+| where TimeGenerated >= ago(1d)
+| extend AccountType = tostring(TargetResources[0].type), UserPrincipalName = tostring(TargetResources[0].userPrincipalName), 
+  TargetResourceName = tolower(tostring(TargetResources[0].displayName)), SSPRSourceIP = tostring(InitiatedBy.user.ipAddress)
+| project UserPrincipalName, SSPRSourceIP, SSPRAttemptTime = TimeGenerated;
+
+// Get sucessfull sign-events from users with IP addresses before SSPR time range
+let known_ipaddresses =
+SigninLogs
+| where TimeGenerated >= ago(1d)
+| where ResultType == "0"
+| where RiskLevelAggregated == "none" or RiskLevelDuringSignIn == "none"
+| extend TrustedIP = tostring(IPAddress)
+| project UserPrincipalName, TrustedIP, SignInTime = TimeGenerated;
+
+sspr_events | join kind= inner (known_ipaddresses) on UserPrincipalName
+| where SSPRAttemptTime > SignInTime
+| where SSPRSourceIP != TrustedIP
+| project UserPrincipalName, SSPRSourceIP, SSPRAttemptTime
