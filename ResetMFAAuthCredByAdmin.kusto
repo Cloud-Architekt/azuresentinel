@@ -1,0 +1,50 @@
+name: Reset of two-factor authentication credentials (password and MFA) of Azure AD account by admin
+description: |
+  'This query over Azure Active Directory events of reset password and modification of StrongAuthentiicationMethods by admins.
+  An alert is generated if both authentication credentials was modified within a certain timeframe.'
+severity: Medium
+requiredDataConnectors:
+  - connectorId: AzureActiveDirectory
+    dataTypes:
+      - AuditLogs
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - InitialAccess
+relevantTechniques:
+  - T1078
+query: |
+ 
+  let timeFrame = 1d;
+  let resetDiff = 10m;
+  AuditLogs
+  | where TimeGenerated >= ago(timeFrame) 
+  | where OperationName == "Reset password (by admin)"
+  | extend PasswordResetTime = TimeGenerated, UserPrincipalName = tostring(TargetResources[0].userPrincipalName), PasswordResetIP = tostring(InitiatedBy.user.ipAddress)
+  | join kind= inner (
+      AuditLogs
+      | where TimeGenerated >= ago(timeFrame) 
+      | where TargetResources contains "StrongAuthenticationMethod"
+      | extend StrongAuthModifyTime = TimeGenerated, UserPrincipalName = tostring(TargetResources[0].userPrincipalName)
+    // Audit Event contains no source IP, using OperationsName "Admin updated security info" is not covering reset of MFA
+
+  ) on UserPrincipalName 
+  | where PasswordResetTime - StrongAuthModifyTime <= resetDiff or StrongAuthModifyTime - PasswordResetTime <= resetDiff
+  | summarize PasswordResetTime = max(PasswordResetTime), StrongAuthModifyTime = max(StrongAuthModifyTime) by UserPrincipalName, PasswordResetIP 
+  | extend timestamp = PasswordResetTime, AccountCustomEntity = UserPrincipalName, IPCustomEntity = PasswordResetIP
+
+
+
+
+  // EXPERTIMENTAL
+
+
+    | join kind= inner (
+      SigninLogs 
+      | where TimeGenerated >= ago(timeFrame) 
+      | where ResultType == "0" 
+      | project SuccessfulLogonTime = TimeGenerated, UserPrincipalName, LoginIPAddress = IPAddress
+  ) on UserPrincipalName
+  | where SuccessfulLogonTime < PasswordResetTime and PasswordResetTime - SuccessfulLogonTime <= signinDiff
