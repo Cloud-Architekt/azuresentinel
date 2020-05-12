@@ -20,7 +20,7 @@ relevantTechniques:
 query: |
 
 // Get events of SSPR blocked activities within the number of days (timeframe)
-let timeRange = 3d;
+let timeRange = 1d;
 
 AuditLogs
 | where TimeGenerated >= ago(timeRange)
