@@ -34,17 +34,3 @@ query: |
   | where PasswordResetTime - StrongAuthModifyTime <= resetDiff or StrongAuthModifyTime - PasswordResetTime <= resetDiff
   | summarize PasswordResetTime = max(PasswordResetTime), StrongAuthModifyTime = max(StrongAuthModifyTime) by UserPrincipalName, PasswordResetIP 
   | extend timestamp = PasswordResetTime, AccountCustomEntity = UserPrincipalName, IPCustomEntity = PasswordResetIP
-
-
-
-
-  // EXPERTIMENTAL
-
-
-    | join kind= inner (
-      SigninLogs 
-      | where TimeGenerated >= ago(timeFrame) 
-      | where ResultType == "0" 
-      | project SuccessfulLogonTime = TimeGenerated, UserPrincipalName, LoginIPAddress = IPAddress
-  ) on UserPrincipalName
-  | where SuccessfulLogonTime < PasswordResetTime and PasswordResetTime - SuccessfulLogonTime <= signinDiff
