@@ -19,7 +19,7 @@ relevantTechniques:
   - T1110
 query: |
 
-let maxTimeBetweenSSPRandSigninInMinutes=12*60; // per Default max. difference is set to 12h
+let maxTimeBetweenSSPRandSigninInMinutes=7*24*60; // per Default max. difference is set to 7 Days
  
 AuditLogs
 | where LoggedByService == "Self-service Password Management" and ResultDescription == "User submitted their user ID"
