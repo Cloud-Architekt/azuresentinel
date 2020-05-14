@@ -19,15 +19,18 @@ relevantTechniques:
   - T1110
 query: |
 
+let timeRange = 1d;
 let maxTimeBetweenSSPRandSigninInMinutes=7*24*60; // per Default max. difference is set to 7 Days
  
 AuditLogs
+| where TimeGenerated >= ago(timeRange) 
 | where LoggedByService == "Self-service Password Management" and ResultDescription == "User submitted their user ID"
 | extend AccountType = tostring(TargetResources[0].type), UserPrincipalName = tostring(TargetResources[0].userPrincipalName),
   TargetResourceName = tolower(tostring(TargetResources[0].displayName)), SSPRSourceIP = tostring(InitiatedBy.user.ipAddress)
 | project UserPrincipalName, SSPRSourceIP, SSPRAttemptTime = TimeGenerated, CorrelationId
 | join kind= leftouter (
     SigninLogs
+    | where datetime_add('minute',maxTimeBetweenSSPRandSigninInMinutes,TimeGenerated) >= ago(timeRange)
     | where ResultType == "0"
     | where RiskLevelAggregated == "none" or RiskLevelDuringSignIn == "none"
     | extend TrustedIP = tostring(IPAddress)
