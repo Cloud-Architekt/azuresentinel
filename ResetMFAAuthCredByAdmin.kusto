@@ -17,7 +17,7 @@ relevantTechniques:
   - T1078
 query: |
  
-  let timeFrame = 1d;
+  let timeFrame = 1h;
   let resetDiff = 10m;
   AuditLogs
   | where TimeGenerated >= ago(timeFrame) 
