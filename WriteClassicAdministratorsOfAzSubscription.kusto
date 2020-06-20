@@ -1,0 +1,26 @@
+
+name: Write classic administrator roles of Azure Subscription 
+description: |
+  'Detection of writing authorization information as part of Azure classic administrator roles (ASM).'
+severity: High
+requiredDataConnectors:
+  - connectorId: AzureActivity
+    dataTypes:
+      - AzureActivity
+queryFrequency: 1d
+queryPeriod: 1d
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Persistence
+  - PrivilegeEscalation
+relevantTechniques:
+  - T1098
+query: |
+
+let timeRange = 1d;
+let szOperationNames = dynamic(["MICROSOFT.AUTHORIZATION/CLASSICADMINISTRATORS/WRITE", "MICROSOFT.AUTHORIZATION/CLASSICADMINISTRATORS/DELETE"]);
+
+AzureActivity
+| where OperationNameValue in~ (szOperationNames) and ActivityStatusValue == "Success" and Caller != ""
+| project timestamp = TimeGenerated, AccountCustomEntity = Caller, IPCustomEntity = CallerIpAddress
