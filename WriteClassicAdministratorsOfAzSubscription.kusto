@@ -1,5 +1,5 @@
 
-name: Write classic administrator roles of Azure Subscription 
+name: Suspicious assignement of (classic) administrator roles
 description: |
   'Detection of writing authorization information as part of Azure classic administrator roles (ASM).'
 severity: High
@@ -22,5 +22,5 @@ let timeRange = 1d;
 let szOperationNames = dynamic(["MICROSOFT.AUTHORIZATION/CLASSICADMINISTRATORS/WRITE", "MICROSOFT.AUTHORIZATION/CLASSICADMINISTRATORS/DELETE"]);
 
 AzureActivity
-| where OperationNameValue in~ (szOperationNames) and ActivityStatusValue == "Success" and Caller != ""
+| where OperationNameValue in~ (szOperationNames) and ActivityStatusValue == "Success"
 | project timestamp = TimeGenerated, AccountCustomEntity = Caller, IPCustomEntity = CallerIpAddress
