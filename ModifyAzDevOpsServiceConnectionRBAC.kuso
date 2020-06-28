@@ -1,0 +1,3 @@
+AzureDevOpsAuditing
+| where OperationName == "Security.ModifyPermission" and Data contains "Use Service Connection"
+| project timestamp = TimeGenerated, AccountCustomEntity = ActorUPN, IPCustomEntity = IpAddress, OperationName
