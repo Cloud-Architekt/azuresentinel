@@ -1,0 +1,23 @@
+name: Sign-in activity from external (privileged) user without MFA claim in the token.
+description: |
+  'This query over Azure Active Directory sign-in events will search for external privileged users (based on your defined adminAccountPreffix) without passing MFA requirements as satisfied in token's claim. This could be use as detection for access to inviting tenant without passing MFA requirements in the home tenant."
+severity: Medium
+requiredDataConnectors:
+  - connectorId: AzureActiveDirectory
+    dataTypes:
+      - SignInLogs
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - InitialAccess
+relevantTechniques:
+  - T1078
+query: |
+ 
+let adminAccountPreffix = 'adm';
+
+SigninLogs
+| where ResultType == "0" and UserPrincipalName startswith adminAccountPreffix | where Status !contains "MFA requirement satisfied by claim in the token"
+| project timestamp = TimeGenerated, AccountCustomEntity = UserPrincipalName, IPCustomEntity = IPAddress
