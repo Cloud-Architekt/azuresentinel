@@ -1,0 +1,22 @@
+name: Risky sign-in activity to Azure Portal without applied Conditional Access Policies.
+description: |
+  'This query over Azure Active Directory sign-in events will search for risky sign-in events and non-applied Conditional Access Policies by accessing the Azure Portal."
+severity: Medium
+requiredDataConnectors:
+  - connectorId: AzureActiveDirectory
+    dataTypes:
+      - SignInLogs
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - InitialAccess
+relevantTechniques:
+  - T1078
+query: |
+
+SigninLogs
+| where ConditionalAccessStatus == "notApplied" and ResultType == "0" and TimeGenerated > ago(90d)
+| where RiskLevelDuringSignIn != "none" or RiskLevelAggregated != "none"
+| where ResourceIdentity == "797f4846-ba00-4fd7-ba43-dac1f8f63013"
