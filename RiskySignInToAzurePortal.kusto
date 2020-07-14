@@ -17,6 +17,6 @@ relevantTechniques:
 query: |
 
 SigninLogs
-| where ConditionalAccessStatus == "notApplied" and ResultType == "0" and TimeGenerated > ago(90d)
+| where ConditionalAccessStatus == "notApplied" and ResultType == "0"
 | where RiskLevelDuringSignIn != "none" or RiskLevelAggregated != "none"
 | where ResourceIdentity == "797f4846-ba00-4fd7-ba43-dac1f8f63013"
