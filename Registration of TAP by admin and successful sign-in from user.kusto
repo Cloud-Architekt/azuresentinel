@@ -1,0 +1,39 @@
+  name: Registeration of TAP by admin after successful sign-in activities from user
+description: |
+  'Identifies when a privileged user has generated a temporary access pass (TAP) and a successful multiFactorAuthentication was used by the user within a specific time window.
+  This may indicate a suspicious admin activity because the user should be able to add a security key on their own.'
+severity: Medium
+requiredDataConnectors:
+  - connectorId: AzureActiveDirectory
+    dataTypes:
+      - SigninLogs
+      - AuditLogs
+queryFrequency: 1d
+queryPeriod: 1d
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - CredentialAccess
+  - InitialAccess
+relevantTechniques:
+  - T1110
+  - T1078
+query: |
+
+  let logonDiff = 4h;
+  AuditLogs
+  | where LoggedByService == "Authentication Methods" and ResultDescription == "Admin registered temporary access pass method for user"
+  | extend TAPInitiatingUserOrApp = iff(isnotempty(InitiatedBy.user.userPrincipalName),tostring(InitiatedBy.user.userPrincipalName), tostring(InitiatedBy.app.displayName))
+  | extend TAPInitiatingIpAddress = iff(isnotempty(InitiatedBy.user.ipAddress), tostring(InitiatedBy.user.ipAddress), tostring(InitiatedBy.app.ipAddress))
+  | extend TAPTargetUpn = tostring(TargetResources[0].userPrincipalName)
+  | extend TAPTargetId = tostring(TargetResources[0].id)
+  | project TAPGeneratedTime = TimeGenerated, UserPrincipalName = TAPTargetUpn, TAPInitiatingUserOrApp, TAPInitiatingIpAddress
+  | join kind= inner (
+      SigninLogs 
+      | where ResultType == "0"
+      | where AuthenticationRequirement == "multiFactorAuthentication" or AuthenticationDetails contains "Windows Hello" or AuthenticationMethodsUsed  contains "FIDO2"
+      | project SuccessLogonTime = TimeGenerated, UserPrincipalName, SuccessIPAddress = IPAddress
+  ) on UserPrincipalName
+  | where TAPGeneratedTime > SuccessLogonTime and TAPGeneratedTime - SuccessLogonTime <= logonDiff
+  | summarize TAPGeneratedTime = max(TAPGeneratedTime), SuccessLogonTime = max(SuccessLogonTime) by UserPrincipalName, TAPInitiatingUserOrApp
+  | extend TimeGenerated = TAPGeneratedTime, AccountCustomEntity = UserPrincipalName, TAPInitiatingUserOrApp

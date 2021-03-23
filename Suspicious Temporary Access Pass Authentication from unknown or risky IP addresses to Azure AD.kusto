@@ -1,0 +1,43 @@
+name: Suspicious Authentication with Temporary Access Pass (TAP) from unknown or risky IP addresses to Azure AD
+description: |
+  'Identifies unknown or risky IPs from which users attempts are trying to use Temporary Access Pass to register password-less authentication.'
+severity: Medium
+requiredDataConnectors:
+  - connectorId: AzureActiveDirectory
+    dataTypes:
+      - SigninLogs
+queryFrequency: 1d
+queryPeriod: 14d
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - InitialAccess
+  - CredentialAccess
+relevantTechniques:
+  - T1078
+  - T1110
+query: |
+
+let timeRange = 1d;
+let maxTimeBetweenSecKeyRegAndSigninInMinutes=7*24*60; // per Default max. difference is set to 7 Days
+ 
+// Using sign-in event with TAP on MAB because Audit log entry of "User registered Fido" does not contain IP addresses
+SigninLogs
+| where AppDisplayName == "Microsoft Authentication Broker"
+| extend authenticationMethodDetails = tostring(parse_json(AuthenticationDetails)[0].authenticationMethod) 
+| where authenticationMethodDetails contains "Temporary Access Pass"
+| project UserPrincipalName, SecKeyRegAttemptSourceIP = IPAddress, SecKeyRegAttemptTime = TimeGenerated, CorrelationId
+| join kind= leftouter (
+    SigninLogs
+    | where datetime_add('minute',maxTimeBetweenSecKeyRegAndSigninInMinutes,TimeGenerated) >= ago(timeRange)
+    | where ResultType == "0"
+    | where RiskLevelAggregated == "none" or RiskLevelDuringSignIn == "none"
+    | extend TrustedIP = tostring(IPAddress)
+    | project UserPrincipalName, TrustedIP, SignInTime = TimeGenerated
+) on UserPrincipalName
+| where SecKeyRegAttemptTime > SignInTime
+| extend TimeDifferenceInMinutes= iif(SecKeyRegAttemptSourceIP==TrustedIP,datetime_diff("Minute",SignInTime,SecKeyRegAttemptTime), 0), Match=SecKeyRegAttemptSourceIP==TrustedIP
+| where TimeDifferenceInMinutes >= -maxTimeBetweenSecKeyRegAndSigninInMinutes
+| summarize  SignInsFromTheSameIP=countif(Match), min(TimeDifferenceInMinutes) by UserPrincipalName, CorrelationId, SecKeyRegAttemptTime, SecKeyRegAttemptSourceIP   //SignInsFromTheSameIP=0 if no sign in came from the IP used for SSPR in the last maxTimeBetweenSSPRandSigninInMinutes
+| where SignInsFromTheSameIP == "0"
+| project timestamp = SecKeyRegAttemptTime, AccountCustomEntity = UserPrincipalName, IPCustomEntity = SecKeyRegAttemptSourceIP
