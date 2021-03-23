@@ -1,4 +1,4 @@
-  name: Registeration of TAP by admin after successful sign-in activities from user
+  name: Registration of TAP by admin after successful sign-in activities from user
 description: |
   'Identifies when a privileged user has generated a temporary access pass (TAP) and a successful multiFactorAuthentication was used by the user within a specific time window.
   This may indicate a suspicious admin activity because the user should be able to add a security key on their own.'
