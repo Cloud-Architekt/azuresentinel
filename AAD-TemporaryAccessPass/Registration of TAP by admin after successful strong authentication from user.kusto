@@ -1,4 +1,4 @@
-  name: Registration of TAP by admin after successful sign-in activities from user
+  name: Registration of TAP by admin after successful strong authentication from user
 description: |
   'Identifies when a privileged user has generated a temporary access pass (TAP) and a successful multiFactorAuthentication was used by the user within a specific time window.
   This may indicate a suspicious admin activity because the user should be able to add a security key on their own.'
@@ -25,7 +25,7 @@ query: |
   | where LoggedByService == "Authentication Methods" and ResultDescription == "Admin registered temporary access pass method for user"
   | extend TAPInitiatingUserOrApp = iff(isnotempty(InitiatedBy.user.userPrincipalName),tostring(InitiatedBy.user.userPrincipalName), tostring(InitiatedBy.app.displayName))
   | extend TAPInitiatingIpAddress = iff(isnotempty(InitiatedBy.user.ipAddress), tostring(InitiatedBy.user.ipAddress), tostring(InitiatedBy.app.ipAddress))
-  | extend TAPTargetUpn = tostring(TargetResources[0].userPrincipalName)
+  | extend TAPTargetUpn = tolower(tostring(TargetResources[0].userPrincipalName))
   | extend TAPTargetId = tostring(TargetResources[0].id)
   | project TAPGeneratedTime = TimeGenerated, UserPrincipalName = TAPTargetUpn, TAPInitiatingUserOrApp, TAPInitiatingIpAddress
   | join kind= inner (
@@ -36,4 +36,4 @@ query: |
   ) on UserPrincipalName
   | where TAPGeneratedTime > SuccessLogonTime and TAPGeneratedTime - SuccessLogonTime <= logonDiff
   | summarize TAPGeneratedTime = max(TAPGeneratedTime), SuccessLogonTime = max(SuccessLogonTime) by UserPrincipalName, TAPInitiatingUserOrApp
-  | extend TimeGenerated = TAPGeneratedTime, AccountCustomEntity = UserPrincipalName, TAPInitiatingUserOrApp
+  | extend timestamp = TAPGeneratedTime, AccountCustomEntity = TAPInitiatingUserOrApp
