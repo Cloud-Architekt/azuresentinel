@@ -45,7 +45,7 @@ function Get-AzSentinelTemplateRuleUpdates {
                 #Other Errors
             }
         
-        Write-Host "Collecting Rule Templates and Active Templates..."
+        Write-Host "Collecting Rule Templates and Active Rules..."
         $LastUpdated = (Get-Date).adddays(-$TimeRange)
         $UpdatedTemplates = Get-AzSentinelAlertRuleTemplates -WorkspaceName $WorkSpaceName -SubscriptionId $SubscriptionId | Where-Object {$_.lastUpdatedDateUTC -gt $LastUpdated}
         $AllCreatedAlertRulesFromTemplates = Get-AzSentinelAlertRule -WorkspaceName $WorkSpaceName -SubscriptionId $SubscriptionId | Where-Object {$_.alertRuleTemplateName -ne $null}
