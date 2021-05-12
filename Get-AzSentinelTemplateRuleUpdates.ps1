@@ -8,6 +8,8 @@ function Get-AzSentinelTemplateRuleUpdates {
       Get updated Azure Sentinel Rule templates within specific time range to compare them with your active rules.
       .DESCRIPTION
       This function can be used to compare latest template rules from Microsoft with your existing (active) rules.
+      .EXAMPLES
+      Get-AzSentinelTemplateRuleUpdates -WorkspaceName "lab-la-XXXXXXXXXXXX" -SubscriptionId "4d3e5b65-8a52-4b2f-b5cd-XXXXXX" -TimeRange "90"
     #>
     param (
         [Parameter(Mandatory)]
