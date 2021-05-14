@@ -36,7 +36,7 @@ function Get-AzSentinelTemplateRuleUpdates {
             Import-Module AzSentinel, powershell-yaml -ErrorAction Stop
         } 
         catch {
-            Write-Error "Import-Module could not load the required modules!"
+            throw "Import-Module could not load the required modules!"
         }
 
         $OutputFolder = "./" + (Get-Date -Format "yyyy-MM-dd") + "_UpdatesOfLast" + $TimeRange + "Days"
