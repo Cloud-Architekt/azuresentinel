@@ -23,7 +23,7 @@ function Get-AzSentinelTemplateRuleUpdates {
 
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
-        [object]$Compare = @('severity', 'query', 'queryFrequency', 'queryPeriod', 'triggerOperator', 'triggerThreshold', 'entityMappings', 'displayName', 'description', 'tactics'),
+        [object]$Compare = @('severity', 'query', 'queryFrequency', 'queryPeriod', 'triggerOperator', 'triggerThreshold', 'entityMappings', 'displayName', 'description', 'tactics', 'anomalyDefinitionVersion'),
 
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
@@ -31,6 +31,13 @@ function Get-AzSentinelTemplateRuleUpdates {
     )
 
     process {
+
+        try {
+            Import-Module AzSentinel, powershell-yaml -ErrorAction Stop
+        } 
+        catch {
+            Write-Error "Import-Module could not load the required modules!"
+        }
 
         $OutputFolder = "./" + (Get-Date -Format "yyyy-MM-dd") + "_UpdatesOfLast" + $TimeRange + "Days"
         $CSVFile = (Get-Date -Format "yyyy-MM-dd") + "_RuleTemplateChangesSince" + $TimeRange + "Days.csv"
@@ -45,7 +52,7 @@ function Get-AzSentinelTemplateRuleUpdates {
             catch {
                 #Other Errors
             }
-        
+            
         Write-Host "Collecting Rule Templates and Active Rules..."
         $LastUpdated = (Get-Date).adddays(-$TimeRange)
         $UpdatedTemplates = Get-AzSentinelAlertRuleTemplates -WorkspaceName $WorkSpaceName -SubscriptionId $SubscriptionId | Where-Object {$_.lastUpdatedDateUTC -gt $LastUpdated}
