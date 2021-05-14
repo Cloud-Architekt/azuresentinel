@@ -1,6 +1,7 @@
 
 #requires -version 6.2
 #requires -module @{ModuleName = 'AzSentinel'; ModuleVersion = '0.6.15'}
+#requires -Modules @{ ModuleName='powershell-yaml'; ModuleVersion='1.0.2' }
 
 function Get-AzSentinelTemplateRuleUpdates {
     <#
